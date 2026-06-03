@@ -5,12 +5,12 @@ use bytemuck::{Pod, Zeroable};
 use minifb::{Key, MouseMode, Window, WindowOptions};
 use wgpu::util::DeviceExt;
 
-// ── initial window size ───────────────────────────────────────────────────────
+// initial window size
 
 const INIT_WIDTH:  usize = 1200;
 const INIT_HEIGHT: usize = 800;
 
-// ── GPU parameter block ───────────────────────────────────────────────────────
+// GPU parameter block
 
 /// Center stored as double-float (hi + lo, each f32).  True value ≈ hi + lo.
 /// Layout is byte-identical to the WGSL Params struct.  32 bytes, no padding.
@@ -36,7 +36,7 @@ fn split_df(x: f64) -> (f32, f32) {
     (hi, lo)
 }
 
-// ── WGSL compute shader ───────────────────────────────────────────────────────
+// WGSL compute shader
 
 const SHADER: &str = r#"
 struct Params {
@@ -53,7 +53,7 @@ struct Params {
 @group(0) @binding(0) var<uniform>             params : Params;
 @group(0) @binding(1) var<storage, read_write> pixels : array<u32>;
 
-// ── Double-float (df) helpers ─────────────────────────────────────────────────
+// Double-float (df) helpers
 //
 // A df value is vec2<f32>(hi, lo); the exact real is hi + lo.
 // Algorithms: Knuth two-sum (exact error-free addition) and
@@ -94,7 +94,7 @@ fn df_add_f(a: vec2<f32>, b: f32) -> vec2<f32> {
     return vec2<f32>(s.x, s.y + a.y);
 }
 
-// ── Main kernel ───────────────────────────────────────────────────────────────
+// Main kernel
 
 @compute @workgroup_size(16, 16)
 fn cs_main(@builtin(global_invocation_id) gid : vec3<u32>) {
@@ -146,7 +146,7 @@ fn cs_main(@builtin(global_invocation_id) gid : vec3<u32>) {
 }
 "#;
 
-// ── GPU wrapper ───────────────────────────────────────────────────────────────
+// GPU wrapper
 
 struct Gpu {
     device:      wgpu::Device,
@@ -192,7 +192,7 @@ impl Gpu {
             .await
             .expect("Failed to open wgpu device");
 
-        // ── shader & pipeline ─────────────────────────────────────────────
+        // shader & pipeline
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label:  Some("mandelbrot"),
@@ -238,7 +238,7 @@ impl Gpu {
             cache:               None,
         });
 
-        // ── uniform buffer ────────────────────────────────────────────────
+        // uniform buffer
 
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label:    Some("uniform"),
@@ -253,7 +253,7 @@ impl Gpu {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        // ── size-dependent buffers ─────────────────────────────────────────
+        // size-dependent buffers
 
         let (output_buf, staging_buf) = Self::make_pixel_bufs(&device, width, height);
 
@@ -351,7 +351,7 @@ impl Gpu {
     }
 }
 
-// ── main ──────────────────────────────────────────────────────────────────────
+// main
 
 fn main() {
     // Keep the view state in f64 on the CPU to avoid rounding drift during pan/zoom.
@@ -381,7 +381,7 @@ fn main() {
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
-        // ── window resize ──────────────────────────────────────────────────
+        // window resize
         let (nw, nh) = window.get_size();
         if (nw, nh) != (width, height) && nw > 0 && nh > 0 {
             width  = nw;
@@ -391,7 +391,7 @@ fn main() {
             dirty = true;
         }
 
-        // ── scroll-to-zoom ─────────────────────────────────────────────────
+        // scroll-to-zoom
         if let Some((_sx, sy)) = window.get_scroll_wheel() {
             if sy != 0.0 {
                 if let Some((mx, my)) = window.get_mouse_pos(MouseMode::Discard) {
@@ -411,14 +411,14 @@ fn main() {
             }
         }
 
-        // ── pan: WASD + arrow keys  (10 pixels per frame, zoom-independent) ─
+        // pan: WASD + arrow keys  (10 pixels per frame, zoom-independent)
         let pan = 10.0 / zoom;
         if window.is_key_down(Key::Left)  || window.is_key_down(Key::A) { cx -= pan; dirty = true; }
         if window.is_key_down(Key::Right) || window.is_key_down(Key::D) { cx += pan; dirty = true; }
         if window.is_key_down(Key::Up)    || window.is_key_down(Key::W) { cy -= pan; dirty = true; }
         if window.is_key_down(Key::Down)  || window.is_key_down(Key::S) { cy += pan; dirty = true; }
 
-        // ── GPU render (only when the view has changed) ────────────────────
+        // GPU render (only when the view has changed)
         if dirty {
             // Scale iteration depth with zoom so detail never washes out.
             // log10(300) ≈ 2.5  →  min-clamped to 256
