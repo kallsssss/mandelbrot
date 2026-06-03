@@ -1,22 +1,5 @@
 // Mandelbrot explorer — compute shader edition (deep zoom · resizable · WASD)
 // GPU: AMD RX 570 (or any Vulkan/DX12/Metal device) via wgpu
-//
-// Changes over the original
-// ─────────────────────────
-// • Deep zoom: the WGSL shader now uses double-float (2×f32) arithmetic,
-//   giving ~48 bits of mantissa (≈14 decimal digits) vs f32's 24 bits (~7).
-//   Clean zoom depth extends from ~1×10⁵ (f32 limit) to ~1×10¹³.
-//   Technique: Knuth two-sum + Veltkamp/Dekker two-product, entirely in WGSL.
-//
-// • Resizable window: WindowOptions { resize: true }.  GPU buffers are
-//   recreated (output_buf, staging_buf, bind_group) on every size change.
-//   The BindGroupLayout is kept in the Gpu struct for this purpose.
-//
-// • WASD panning in addition to arrow keys.
-//
-// • max_iter scales automatically with zoom depth so detail never disappears.
-//
-// • Title bar shows live coordinates, zoom, and iteration count.
 
 use bytemuck::{Pod, Zeroable};
 use minifb::{Key, MouseMode, Window, WindowOptions};
